@@ -1,0 +1,310 @@
+---
+title: "Project"
+author:
+  - "Dmitry Sorokin"
+  - "Henry Yost"
+  - "Refugio Zepeda"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Loading and cleaning the dataset:
+```{r}
+source("inference.R")
+library(MASS)
+set.seed(0)
+nba <- read.csv("nba2024.csv", header = TRUE)
+na.omit(nba)
+```
+
+```{r}
+age_3pa <- nba[,c("Age", "X3PA")]
+#removing rows with a 0 for attempted 3-pointers
+age_3pa <- age_3pa[which(age_3pa$X3PA != 0),]
+head(age_3pa)
+
+#also creating a new, seperate dataset that only incldues position and free throw attempts 
+pos_fta <- nba[,c("Pos", "FTA")]
+```
+
+
+
+**EDA: Exploring Variables:**
+```{r}
+#lets explore: distribution of age, relationship between age and 3-P attempts, the relationship between age and team, and the relationship between pos and personal fouls
+
+explore_data <- nba[,c("Age", "Pos", "X3PA", "Tm", "PF")]
+head(explore_data)
+
+```
+
+Lets first take a look at the distribution of age
+```{r}
+hist(explore_data$Age)
+```
+
+---
+**Age seems to be right-skewed, which makes sense. For professional sports, it is more unlikely to see older players compared to younger ones, as the younger a person is, the easier it is to heal, participate in very demanding exercises, and the human body, is generally in better condition when a person is young.**
+---
+
+
+Now, lets look at the relationship between age and 3-P attempts:
+```{r}
+plot(x = explore_data$Age, y = explore_data$X3PA, main = "Scatterplot of Age and 3-point Attempts", xlab = "Age (Years)", ylab = "Number of 3-point Attempts")
+
+```
+
+
+---
+**From the graph above, it is hard to determine whether or not there is any linear relationship between the two variables, however, we can still get insight from the graph. As seen in the distribution of age, it is evident that we have the most number of players that are around 25 years old, we can also see this pattern in this graph, as it seems we have the most data points around that age. Some insights we do get from this scatterplot, are that more younger players attempt 10 or more free throws and that there is a visible dip in the number of attempted 3-pointers starting around the age of 35. This could signify that when a player reaches around 35 years old, they might attempt less 3-point shots.**
+---
+
+Now, let's look at the relationship between age and team.
+```{r, fig.width = 20}
+explore_data$Tm <- factor(explore_data$Tm)
+
+#x <- unique(explore_data$Tm)
+#print(x)
+
+team_cols <- c("TOT"="#A5A5A5", "MIA"="#98002E", "MEM"="#5D76A9", "MIN"="#0C2340", "PHO"="#E56020", "CLE"="#6F263D", "NOP"="#85714D", "MIL"="#00471B", "ORL"="#0077C0", "NYK"="#F58426", "WAS"="#E31837", "POR"="#E03A3E", "CHO"="#1D1160", "PHI"="#006BB6", "SAS"="#C4CED4", "SAC"="#5A2D81", "TOR"="#CE1141", "ATL"="#E03A3E", "CHI"="#CE1141", "DET"="#C8102E", "LAC"="#1D428A", "DEN"="#FEC524", "BRK"="#000000", "BOS"="#007A33", "HOU"="#CE1141", "DAL"="#00538C", "IND"="#002D62", "LAL"="#FDB927", "UTA"="#002B5C", "GSW"="#FFC72C", "OKC"="#007AC1")
+
+plot(x = explore_data$Tm, y = explore_data$Age, main = "Relationship Between Team and Age", xlab = "Team", ylab = "Age", col = team_cols)
+```
+
+---
+**From the box graph above, we can see that a lot of the teams have different ranges for age for their players. We were expecting the teams to have closer ranges for age, as a lot of younger players perform better than older ones. We also found that the 'NYK' team seems to have the smallest IQR and that the GSW team has the largest IQR. We can also see that there are not that many outliers in our data and that most teams have no outliers at all.**
+---
+
+Finally, let's also examine the relationship between a player's position and number personal fouls
+```{r, fig.width= 15}
+explore_data$Pos <- factor(explore_data$Pos)
+
+plot(x = explore_data$Pos, y = explore_data$PF, xlab = "Player Position", ylab = "Number of Personal Fouls", main = "Player Position vs. Number of Personal Fouls", col = c("#E63946", "#F4A261", "#2A9D8F", "#264653", "#8D99AE", "#E9C46A", "#A8DADC", "#457B9D", "#6A0572", "#FFB703", "#023047", "#D62828"))
+```
+
+---
+**From the graph above, we can see that the position with the most number of personal fouls is the 'PF' position. We can also see that we have players in multiple different positions who have gotten no personal fouls. From the graph we can easily see that most, if not all, of the positions have a median number of personal fouls at or under 5.**
+---
+
+**Analysis 2: Multi-Linear Regression**
+
+We want to try and predict a player's three-point attempt.
+For this, we want to see which variables are significant for our model, to do this we will use backward elimination. First, we will select the variables that we think will be a good measure for our linear model.
+```{r}
+full_lin_model <- lm(X3PA ~ Rk + Pos + Age + MP + PTS + ORB + DRB, data = nba)
+summary(full_lin_model)
+```
+
+Based on our full linear model that includes the variables we decided on, we can see that our $R^2_{adjusted}$ is around 0.47, which is not bad for our random guess of variables. Our $R^2_{adjusted}$ value shows us that around 47.21% of the variance in 3-Point Attempts is explained by our model.
+
+Now we will try to improve our model with backward elimination:
+
+```{r}
+library(MASS)
+backwards_elimination_model <- step(full_lin_model, direction = "backward")
+summary(backwards_elimination_model)
+```
+
+From the output above, we see that our new model does not include variables 'Rk' or 'Age' and has a higher $R^2_{adjusted}$ of 0.4728. This means that with less variables, we get a higher $R^2_{adjusted}$, so our new model is better than our old one because it explains more of the variability in 3-Point Attempts and it uses less variables.
+
+The table results from our Linear model are that they are significant, we can see that our p-value for our entire model are very low, they are about 0, meaning that our model is statistically significant. From further analysis of our summary, we can see that most of our variables are significant because their p-values are below 0.05, which is our alpha for this test, the only variables that are not significant are from our positions. For our positions, when compared to our base position (Center), the only non-significant ones are C-PF, PF-C, PF-SF, PG-SG, SF-PF, and SG-PG. They are insignificant because their p-values are above 0.05, which is higher than our alpha.
+
+Model Diagnostics:
+```{r}
+mdl_resid <- residuals(backwards_elimination_model)
+qqnorm(mdl_resid)
+qqline(mdl_resid)
+
+hist(mdl_resid)
+
+#calculating correlations:
+anova_model_pos_mp <- aov(MP ~ Pos, data = nba)
+print("Anova between MP and Pos")
+summary(anova_model_pos_mp)
+
+anova_model_pos_pts <- aov(PTS ~ Pos, data = nba)
+print("Anova between PTS and Pos")
+summary(anova_model_pos_pts)
+
+anova_model_pos_orb <- aov(ORB ~ Pos, data = nba)
+print("Anova between ORB and Pos")
+summary(anova_model_pos_orb)
+
+anova_model_pos_drb <- aov(DRB ~ Pos, data = nba)
+print("Anova between DRB and Pos")
+summary(anova_model_pos_drb)
+
+print(paste("Correlation between ORB and MP",cor(nba$ORB, nba$MP)))
+print(paste("Correlation between DRB and MP",cor(nba$DRB, nba$MP)))
+print(paste("Correlation between ORB and DRB",cor(nba$ORB, nba$DRB)))
+
+```
+
+Linearity:
+  - Our linearity condition is also not quite satisfied, as based on our Q-Q line plot we see that the ends do not follow the line well.
+Distribution:
+  - Our distribution seems to be semi-normal with maybe a slight right skew. This seems to satisfy our Normal Distribution requirement.
+Variability:
+  - The constant variance condition is violated because at the tails of our Q-Q line plot.
+Independence:
+  - We see that our independence condition is violated between ORB and Pos and DRB and Pos, however, everywhere else it seems to be relatively independent.
+  
+**Regardless of any non-satisfied conditions, we will still use our model for this project. Important to note, due to violated conditions, the statistical validity of our results may not be accurate.**
+
+Now, lets look at how well our linear model predicts the number of 3-point attempts based on our new variables.
+Sum of Squares Residuals:
+```{r}
+test_vals <- data.frame(X3PA = c(6.9, 10, 2, 4.5, 6.7), Pos = c("SG","PG","C","SF","PF"), MP = c(2600, 1005, 2705, 2100, 1506), PTS = c(18, 14, 6, 20, 23), ORB = c(0.1, 0.5, 2, 0.3, 0.45), DRB = c(4.6, 2, 11, 5.8 ,6))
+predicted_3PA <- predict(backwards_elimination_model, test_vals[c("Pos", "MP", "PTS", "ORB", "DRB")], type = "response")
+residuals <- test_vals$X3PA - predicted_3PA
+  
+#Calculating the Sum of Squares Residuals:
+RSS <- sum(residuals^2)
+RSS
+```
+
+The Sum of Squares Residuals was not too high, meaning our model predicted our test player's 3PA pretty well. Across the 5 test players, we only got a RSS of 31.09. This is better than what we thought we would do as our $R^2_{adjusted}$ was only around 50%. However, our statistical validity may not be high due to the fact that we did not satisfy the requirements for linear regression.
+
+
+# Logistic Regression
+#### We will use a logistic regression to determine which position gets fouled the most, with the response variable being free throws attempts (FTA), and the explanatory variables being position (POS, categorical) and minutes played (MP, numerical). 
+
+#### The importance in this logistical relationship lies in that we can determine the probability of a free-throw attempts based off a players position and their time played, which directly relates to how often they are fouled.
+
+```{r}
+  # If free throw is greater than 3, binary = 1, else binary = 0;
+  free_throw <- ifelse(nba$FTA >= 3.0, 1, 0);
+
+  # Convert to categorical to factors
+  nba$Pos <- factor(nba$Pos);
+```
+
+```{r}
+  model <- glm(free_throw ~ Pos + MP, data = nba, family = binomial);
+  summary(model);
+```
+
+## Interpretation
+
+### Significant Variables
+
+Significant variables include Pos PF, Pos PG, Pos SF, Pos SG, and Pos SG-PG, and MP with their P-values of 0.006385, 0.000494, 0.0000000275, 0.00000502, and 0.00000000283 respectively.
+
+### Response Variable Prediction
+
+### 1
+#### If the position is shooting guard (SG) and the the minutes played (MP) is 3194, what is the probability of a free-throw attempt?
+
+```{r}
+    predicted_observation_1 <- data.frame(MP = 3194, Pos = "SG");
+    predict(model, predicted_observation_1, type = "response");
+```
+
+The predicted probability of a shooting guard with 3194 minutes played of a free throw attempt is 63.72%.
+
+### 2
+#### If the position is power forward (PF) and the the minutes played (MP) is 3054, what is the probability of a free-throw attempt?
+
+```{r}
+    predicted_observation_2 <- data.frame(MP = 3054, Pos = "PF");
+    predict(model, predicted_observation_2, type = "response");
+```
+
+The predicted probability of a power forward with 3054 minutes played of a free throw attempt is 73.23%.
+
+### 3
+#### If the position is center (C) and the the minutes played (MP) is 2940, what is the probability of a free-throw attempt?
+
+```{r}
+    predicted_observation_3 <- data.frame(MP = 2940, Pos = "C");
+    predict(model, predicted_observation_3, type = "response");
+```
+
+The predicted probability of a center with 2940 minutes played of a free throw attempt is 85.09%.
+
+### 4
+#### If the position is point guard (PG) and the the minutes played (MP) is 1043, what is the probability of a free-throw attempt?
+
+```{r}
+    predicted_observation_4 <- data.frame(MP = 1043, Pos = "PG");
+    predict(model, predicted_observation_4, type = "response");
+```
+
+The predicted probability of a point guard with 1043 minutes played of a free throw attempt is 36.11%.
+
+### 5
+#### If the position is small forward (SF) and the the minutes played (MP) is 2024, what is the probability of a free-throw attempt?
+
+```{r}
+    predicted_observation_5 <- data.frame(MP = 2024, Pos = "SF");
+    predict(model, predicted_observation_5, type = "response");
+```
+
+The predicted probability of a small forward with 1043 minutes played of a free throw attempt is 35.53%.
+
+### Log-odds
+
+The calculated odds-ratio shows how the odds change with respect to a single-unit increase of minutes played (MP).
+
+```{r}
+  exp(0.0006601);
+```
+
+THe odds-ratio of 1.00066 is positive suggesting that for each additional minute the odds of an attempted free-throw increase by 0.066%.
+
+### Further Analysis
+```{r}
+  predicted_prob <- predict(model, type = "response");
+  predicted_class <- ifelse(predicted_prob > 0.5, 1, 0);
+```
+
+
+### Free-Throw Attempt Probability versus Minutes Played
+```{r, fig.width=10}
+  library(ggplot2);
+
+  ggplot(nba, aes(x = MP, y = predicted_prob, color = Pos)) + geom_point() + labs(title = "Predicted Free-Throw Attempt Probability versus Minutes Played based on Position", x = "Minutes Played (MP)", y = "Predicted Probability");
+```
+### Free-Throw Attempt Probability versus Minutes Played (w/ Tendline)
+```{r, fig.width=10}
+  ggplot(nba, aes(x = MP, y = predicted_prob, color = Pos)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(title = "Predicted Free-Throw Attempt Probability versus Minutes Played based on Position", x = "Minutes Played (MP)", y = "Predicted Probability");
+```
+
+Confidence interval:
+
+For our confidence interval analysis we will look to calculate the 95% confidence interval for the average fg% for a pure center and a pure power forward. Then looking to see if there is a statistical significant difference between the two means.
+```{r}
+head(nba)
+
+
+#Creating subset of just FG% and Pos
+fgp_pos <- nba[,c("FG." ,"Pos")]
+
+#Omitting none center players
+fgp_c_pos <- fgp_pos[which(fgp_pos$Pos == "C"),]
+fgp_pf_pos <-fgp_pos[which(fgp_pos$Pos == "PF"),]
+
+head(fgp_c_pos)
+head(fgp_pf_pos)
+```
+
+```{r}
+inference(y=fgp_c_pos$FG., est = "mean", type = "ci", null = 0, 
+          alternative = "twosides", method = "theoretical")
+
+
+inference(y=fgp_pf_pos$FG., est = "mean", type = "ci", null = 0, 
+          alternative = "twosides", method = "theoretical")
+
+t.test(fgp_c_pos$FG. ,fgp_pf_pos$FG.,)
+```
+$H_0: \mu_c = \mu_{pf}$
+$H_1: \mu_c \neq \mu_{pf}$
+
+We are 95% confident that for a center their fg% would be between 53.32% and 57.43% with a mean around 55.43%. 
+We are 95% confident that for a pure power forward their fg% will be between 44.62% and 48.05% with a mean around 46.63%.
+
+When committing a t test for the two different samples the we get a p value less than 0 meaning we have to reject the null hypotheses since there is enough evidence to support the alternative hypotheses in which there is a statistical difference in between the two sample means. Our combined 95% confidence for the two sample mean difference was between (0.0636, 0.1182) meaning that we are 95% confident the difference between the mean field goal percentage of pure centers and pure power fowards is between 6.36% and 11.82%. 
+
+
