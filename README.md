@@ -16,6 +16,13 @@ After confirming our subset data of just pure centers and pure power-forwards we
 - We are 95% confident a on average a powerfoward's fg% will fall between 44.62% and 48.05%
 - We are 95% confident that the difference in means between a center and a power-foward will be between 6.86% and 11.38%, and along with a p value below 0.05 mean that the difference in true means is statiscally signifcant meaning a player's postion does matter when determining their porjected field goal percentage between a pure power forward and center. 
 
+# Multi-Linear Regression
+
+Our goal when looking at linear regression was to predict a player's 3 point attempted by using positon, minuted played, points, offensice rebounds, and defensive rebounds as our final explanatory variables after going through Backward Elimintaion. 
+
+After created 5 different players with different sample values for our explanatory variables our Sum of Squared Residuals came out to be 31.0951 which even though it can be improved by add more variables and comparing our model using forward selection
+
+# Logistic Regression
 
 
 
