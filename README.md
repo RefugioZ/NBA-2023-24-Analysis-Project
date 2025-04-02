@@ -28,9 +28,9 @@ Our goal for logistic regresion is analyze the importance that a player's positi
 
 ![image](https://github.com/user-attachments/assets/3135a31e-e203-4cdd-9404-26373cac3cdc)
 
--Center has the highest predicted probability of attempting a free throw amongst other positions, consistent with real world context of how to play basketball
--All postions are predicted to be on an upward trend as their play time increases
--From this we can conclude that centers are usually the players that are the most fouled to go along with their under the basket playstyle on average. 
+- Center has the highest predicted probability of attempting a free throw amongst other positions, consistent with real world context of how to play basketball
+- All postions are predicted to be on an upward trend as their play time increases
+- From this we can conclude that centers are usually the players that are the most fouled to go along with their under the basket playstyle on average. 
 
 
 
